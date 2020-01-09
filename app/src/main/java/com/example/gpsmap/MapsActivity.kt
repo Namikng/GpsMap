@@ -19,6 +19,7 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import org.jetbrains.anko.alert
 import org.jetbrains.anko.noButton
+import org.jetbrains.anko.toast
 import org.jetbrains.anko.yesButton
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
@@ -27,7 +28,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
     private lateinit var locationRequest: LocationRequest
-    private lateinit var locationCallback: MyLocationCallback
+    private lateinit var locationCallback: MyLocationCallBack
 
     private val REQUEST_ACCESS_FINE_LOCATION = 1000
 
@@ -53,7 +54,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private fun permissionCheck(cancel: () -> Unit, ok: () -> Unit) {
         // 위치 권한이 있는지 검사
-        if ( ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             // 권한이 허용되지 않음
             if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_FINE_LOCATION)) {
                 // 이전에 권한을 한 번 거부한 적이 있는 경우에 실행할 함수
@@ -107,7 +108,15 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     override fun onResume() {
         super.onResume()
-        addLocationListener()
+
+        // 권한 요청
+        permissionCheck(cancel = {
+            // 위치 정보가 필요한 이유 다이얼로그 표시
+            showPermissionInfoDialog()
+        }, ok = {
+            // 현재 위치를 주기적으로 요청 (권한이 필요한 부분)
+            addLocationListener()
+        })
     }
 
     private fun addLocationListener() {
@@ -124,6 +133,26 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 // 14 level로 확대하고 현재 위치로 카메라 이동
                 val latLng = LatLng(latitude, longitude)
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 17f))
+            }
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        when (requestCode) {
+            REQUEST_ACCESS_FINE_LOCATION -> {
+                if(grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // 권한 허용됨
+                    addLocationListener()
+                } else {
+                    // 권한 거부
+                    toast("권한 거부 됨")
+                }
+                return
             }
         }
     }
