@@ -2,8 +2,10 @@ package com.example.gpsmap
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.Color
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -17,6 +19,7 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.gms.maps.model.PolylineOptions
 import org.jetbrains.anko.alert
 import org.jetbrains.anko.noButton
 import org.jetbrains.anko.toast
@@ -31,6 +34,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var locationCallback: MyLocationCallBack
 
     private val REQUEST_ACCESS_FINE_LOCATION = 1000
+    // PolyLine 옵션
+    private val polylineOptions = PolylineOptions().width(5f).color(Color.RED)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,6 +45,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         val mapFragment = supportFragmentManager
             .findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
+
+        locationInit()
     }
 
     /**
@@ -75,7 +82,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 // 권한 요청
                 ActivityCompat.requestPermissions(this@MapsActivity, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), REQUEST_ACCESS_FINE_LOCATION)
             }
-            noButton { }  // 부정 버튼을 누르면 아무것도 하지 않고 다이얼로그 닫힘
+            noButton { }  // 부정 버튼을 누르면 아무것도 하지 않고 다이얼로 그 닫힘
         }.show()
     }
 
@@ -133,6 +140,13 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 // 14 level로 확대하고 현재 위치로 카메라 이동
                 val latLng = LatLng(latitude, longitude)
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 17f))
+
+                Log.d("MapsActivity", "위도: $latitude, 경도: $longitude")
+                // PolyLine에 좌표 추가
+                polylineOptions.add(latLng)
+
+                // 선 그리기
+                mMap.addPolyline(polylineOptions)
             }
         }
     }
@@ -155,5 +169,16 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 return
             }
         }
+    }
+
+    // 앱이 동작하지 않을때
+    override fun onPause() {
+        super.onPause()
+        removeLocationListener()
+    }
+
+    private fun removeLocationListener() {
+        // 현재 위치 요청을 삭제
+        fusedLocationProviderClient.removeLocationUpdates(locationCallback)
     }
 }
